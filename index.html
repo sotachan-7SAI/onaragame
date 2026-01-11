@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Twerk Race 3D - VRM Edition</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+        html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#000;touch-action:none;position:fixed}
+        #c{width:100%;height:100%;display:block}
+        .ui{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+        #score{position:absolute;top:50px;left:50%;transform:translateX(-50%);font-size:28px;font-weight:bold;color:#fff;text-shadow:2px 2px 8px rgba(0,0,0,0.8)}
+        #level{position:absolute;top:88px;left:50%;transform:translateX(-50%);font-size:16px;color:rgba(255,255,255,0.7)}
+        #stageProgress{position:absolute;top:115px;left:50%;transform:translateX(-50%);width:150px;height:8px;background:rgba(255,255,255,0.3);border-radius:4px;overflow:hidden}
+        #stageBar{height:100%;width:0%;background:linear-gradient(90deg,#4ade80,#22c55e);transition:width 0.1s}
+        #pbar{position:absolute;left:15px;top:110px;width:20px;height:130px;background:rgba(255,255,255,0.15);border-radius:10px;border:2px solid rgba(255,255,255,0.4);overflow:hidden}
+        #pfill{position:absolute;bottom:0;width:100%;height:30%;background:linear-gradient(0deg,#22c55e,#4ade80);transition:height 0.15s}
+        #picon{position:absolute;top:-26px;left:50%;transform:translateX(-50%);font-size:20px}
+        #combo{position:absolute;top:35%;left:50%;transform:translate(-50%,-50%);font-size:36px;font-weight:bold;color:#fbbf24;text-shadow:0 0 20px rgba(251,191,36,0.8);opacity:0;transition:opacity 0.2s}
+        #combo.show{opacity:1}
+        #start,#over,#clear{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;pointer-events:auto;z-index:100}
+        #start{background:linear-gradient(180deg,rgba(255,100,100,0.92),rgba(168,85,247,0.92),rgba(6,182,212,0.92))}
+        #over{display:none;background:rgba(0,0,0,0.9)}
+        #clear{display:none;background:rgba(0,0,0,0.7)}
+        .title{font-size:40px;font-weight:900;color:#fff;text-shadow:3px 3px 10px rgba(0,0,0,0.5);margin-bottom:12px}
+        .clearTitle{font-size:52px;font-weight:900;color:#fbbf24;text-shadow:0 0 30px rgba(251,191,36,0.8);margin-bottom:20px;animation:clearPulse 0.5s ease-in-out infinite alternate}
+        @keyframes clearPulse{0%{transform:scale(1)}100%{transform:scale(1.1)}}
+        .sub{font-size:14px;color:rgba(255,255,255,0.9);margin-bottom:20px;text-align:center;line-height:1.6}
+        .levelComplete{font-size:24px;color:#fff;margin-bottom:10px}
+        .scoreDisplay{font-size:36px;color:#fff;font-weight:bold;margin-bottom:30px}
+        .btn{padding:18px 50px;font-size:20px;font-weight:bold;color:#fff;background:linear-gradient(135deg,#f97316,#ef4444);border:none;border-radius:30px;box-shadow:0 8px 25px rgba(239,68,68,0.5);margin:8px;cursor:pointer}
+        .btn:active{transform:scale(0.96)}
+        .btnGreen{background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 8px 25px rgba(34,197,94,0.5)}
+        .btnBlue{background:linear-gradient(135deg,#3b82f6,#2563eb);box-shadow:0 8px 25px rgba(59,130,246,0.5)}
+        .btnPurple{background:linear-gradient(135deg,#a855f7,#7c3aed);box-shadow:0 8px 25px rgba(168,85,247,0.5)}
+        #fscore{font-size:48px;color:#fbbf24;font-weight:bold;margin:20px 0}
+        #flyHeight{position:absolute;top:45%;left:50%;transform:translateX(-50%);font-size:32px;color:#fff;text-shadow:0 0 20px rgba(255,255,255,0.8);display:none}
+        #cameraControls{position:absolute;right:15px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;pointer-events:auto}
+        .camBtn{width:50px;height:50px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:#fff;font-size:24px;cursor:pointer;backdrop-filter:blur(5px)}
+        .camBtn:active{background:rgba(255,255,255,0.5);transform:scale(0.95)}
+        #camReset{font-size:14px}
+        .zoomBtn{background:rgba(255,200,100,0.4)}
+        #vrmInput,#vrmaInput{display:none}
+        #dropZone{border:3px dashed rgba(255,255,255,0.5);border-radius:20px;padding:20px;margin:15px;text-align:center;transition:all 0.3s}
+        #dropZone.drag{border-color:#4ade80;background:rgba(74,222,128,0.2)}
+        #dropZone p{color:#fff;font-size:14px;margin:5px 0}
+        #modelStatus,#motionStatus,#fartMotionStatus{font-size:14px;color:#4ade80;margin:5px 0}
+        #loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:20px;display:none}
+        .fileRow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:10px 0}
+    </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="ui">
+    <div id="score">0</div>
+    <div id="level">Level 1</div>
+    <div id="stageProgress"><div id="stageBar"></div></div>
+    <div id="pbar"><div id="picon">🔥</div><div id="pfill"></div></div>
+    <div id="combo">COMBO x1</div>
+    <div id="flyHeight">💨 飛行中... 0m</div>
+    <div id="cameraControls">
+        <button class="camBtn zoomBtn" id="camZoomIn">＋</button>
+        <button class="camBtn" id="camUp">↑</button>
+        <button class="camBtn" id="camLeft">←</button>
+        <button class="camBtn" id="camReset">RST</button>
+        <button class="camBtn" id="camRight">→</button>
+        <button class="camBtn" id="camDown">↓</button>
+        <button class="camBtn zoomBtn" id="camZoomOut">−</button>
+    </div>
+    <div id="loading">読み込み中...</div>
+    <div id="start">
+        <div class="title">🍑 TWERK RACE</div>
+        <div class="sub">VRM Edition<br>スワイプで移動・タップでブースト!</div>
+        <div id="dropZone">
+            <p>📁 VRM/VRMAファイルをドロップ</p>
+            <div class="fileRow">
+                <button class="btn btnBlue" id="selectVrmBtn">VRMモデル</button>
+                <button class="btn btnPurple" id="selectVrmaBtn">走りモーション</button>
+                <button class="btn btnGreen" id="selectFartBtn">💨飛行モーション</button>
+            </div>
+            <input type="file" id="vrmInput" accept=".vrm">
+            <input type="file" id="vrmaInput" accept=".vrma">
+            <input type="file" id="fartInput" accept=".vrma">
+            <div id="modelStatus"></div>
+            <div id="motionStatus"></div>
+            <div id="fartMotionStatus"></div>
+        </div>
+        <button class="btn" id="sbtn">START</button>
+    </div>
+    <div id="clear">
+        <div class="clearTitle">🎉 CLEAR! 🎉</div>
+        <div class="levelComplete" id="clearLevel">Level 1 Complete!</div>
+        <div class="scoreDisplay" id="clearScore">Score: 0</div>
+        <button class="btn btnGreen" id="nextbtn">次のステージへ</button>
+    </div>
+    <div id="over">
+        <div class="title">GAME OVER</div>
+        <div id="fscore">0</div>
+        <button class="btn" id="rbtn">RETRY</button>
+    </div>
+</div>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/",
+        "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@2.1.0/lib/three-vrm.module.min.js",
+        "@pixiv/three-vrm-animation": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm-animation@2.1.0/lib/three-vrm-animation.module.min.js"
+    }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { Reflector } from 'three/addons/objects/Reflector.js';
+import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { VRMAnimationLoaderPlugin, createVRMAnimationClip } from '@pixiv/three-vrm-animation';
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8cd0f0);
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 500);
+camera.position.set(0, 2.5, 5);
+camera.lookAt(0, 0.8, -15);
+
+// カメラ角度（キャラを中心に回転）
+const camState = {
+    angleH: 0,      // 水平角度（ラジアン）
+    angleV: 0.3,    // 垂直角度（ラジアン）
+    distance: 6,    // キャラからの距離
+    defaultAngleH: 0,
+    defaultAngleV: 0.3
+};
+
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+dirLight.position.set(5, 10, 5);
+scene.add(dirLight);
+
+let vrm = null;
+let mixer = null;
+let runAction = null;
+let runAnimation = null;
+let fartAction = null;
+let fartAnimation = null;
+let satsumaimoModel = null;
+const clock = new THREE.Clock();
+
+// 効果音
+const puinSound = new Audio('puin.wav');
+puinSound.volume = 0.5;
+
+const mogyuSound = new Audio('mogyu.wav');
+mogyuSound.volume = 0.5;
+
+const onaraSound = new Audio('onara.wav');
+onaraSound.volume = 0.6;
+
+const poronSound = new Audio('poron.wav');
+poronSound.volume = 0.5;
+
+// BGM
+const bgm = new Audio('bgm.wav');
+bgm.volume = 0.4;
+bgm.loop = true;
+
+const STAGE_LENGTH = 150;
+const ROAD_WIDTH = 5;
+const lanes = [-1.5, 0, 1.5];
+
+const st = {
+    run: false, sc: 0, lv: 1, stageDist: 0, pwr: 30, cmb: 0,
+    lane: 1, lx: 0, tx: 0, bs: 1, tw: false, twE: 0, gOff: 0,
+    flying: false, flyY: 0, flyVel: 0, flyTime: 0, maxFlyHeight: 0
+};
+
+let items = [], blocks = [];
+const plusValues = [100, 200, 300, 400];
+const minusValues = [50, 100, 150, 200];
+
+const envGroup = new THREE.Group();
+const itemGroup = new THREE.Group();
+const fartGroup = new THREE.Group();
+scene.add(envGroup);
+scene.add(itemGroup);
+scene.add(fartGroup);
+
+function createGround() {
+    // 反射する地面（Reflector使用）
+    const roadGeo = new THREE.PlaneGeometry(ROAD_WIDTH * 2, 300);
+    const reflector = new Reflector(roadGeo, {
+        color: 0x889999,
+        textureWidth: window.innerWidth * window.devicePixelRatio,
+        textureHeight: window.innerHeight * window.devicePixelRatio
+    });
+    reflector.rotation.x = -Math.PI / 2;
+    reflector.position.set(0, -0.01, -145);
+    envGroup.add(reflector);
+    
+    // 半透明のチェッカーパターン（反射が見えるように）
+    for (let z = 0; z > -300; z -= 3) {
+        for (let x = -ROAD_WIDTH; x < ROAD_WIDTH; x += 1.5) {
+            const isWhite = (Math.floor(x / 1.5) + Math.floor(-z / 3)) % 2 === 0;
+            const tile = new THREE.Mesh(
+                new THREE.PlaneGeometry(1.5, 3),
+                new THREE.MeshStandardMaterial({ 
+                    color: isWhite ? 0xffffff : 0xccccdd,
+                    roughness: 0.3,
+                    metalness: 0.1,
+                    transparent: true,
+                    opacity: 0.5
+                })
+            );
+            tile.rotation.x = -Math.PI / 2;
+            tile.position.set(x + 0.75, 0.01, z - 1.5);
+            envGroup.add(tile);
+        }
+    }
+    
+    // ステージカラー配列
+    const stageColors = [
+        0x40c0d0, // 水色（デフォルト）
+        0xff6060, // 赤
+        0xffd700, // 黄色
+        0xff8c00, // オレンジ
+        0x4080ff, // 青
+        0x60d060, // 緑
+        0xff69b4, // ピンク
+        0x9370db, // 紫
+    ];
+    const currentColor = stageColors[(st.lv - 1) % stageColors.length];
+    
+    const sideMat = new THREE.MeshLambertMaterial({ color: currentColor });
+    const sideL = new THREE.Mesh(new THREE.PlaneGeometry(20, 300), sideMat);
+    sideL.rotation.x = -Math.PI / 2;
+    sideL.position.set(-ROAD_WIDTH - 10, -0.1, -145);
+    sideL.name = 'sideL';
+    envGroup.add(sideL);
+    
+    const sideR = new THREE.Mesh(new THREE.PlaneGeometry(20, 300), sideMat);
+    sideR.rotation.x = -Math.PI / 2;
+    sideR.position.set(ROAD_WIDTH + 10, -0.1, -145);
+    sideR.name = 'sideR';
+    envGroup.add(sideR);
+    
+    const pillarGeo = new THREE.CylinderGeometry(0.3, 0.3, 4.5, 8);
+    const pillarMat = new THREE.MeshLambertMaterial({ color: 0xbbbbcc });
+    for (let z = -10; z > -300; z -= 12) {
+        const pL = new THREE.Mesh(pillarGeo, pillarMat);
+        pL.position.set(-ROAD_WIDTH - 0.8, 2.25, z);
+        envGroup.add(pL);
+        const pR = new THREE.Mesh(pillarGeo, pillarMat);
+        pR.position.set(ROAD_WIDTH + 0.8, 2.25, z);
+        envGroup.add(pR);
+    }
+}
+
+function placeItems() {
+    while (itemGroup.children.length > 0) {
+        itemGroup.remove(itemGroup.children[0]);
+    }
+    items = [];
+    blocks = [];
+    
+    const itemCount = 18 + st.lv * 3;
+    const blockCount = 6 + st.lv * 2;
+    
+    for (let i = 0; i < itemCount; i++) {
+        const z = -8 - (i / itemCount) * STAGE_LENGTH * 1.1;
+        const isGood = Math.random() > 0.35;
+        let type, value, color;
+        
+        if (isGood) {
+            type = Math.random() > 0.3 ? 'satsumaimo' : 'satsumaimo_big';
+            value = plusValues[Math.floor(Math.random() * plusValues.length)];
+            color = 0x8b4513; // 茶色（フォールバック用）
+        } else {
+            type = 'bad';
+            value = minusValues[Math.floor(Math.random() * minusValues.length)];
+            color = 0xff4444;
+        }
+        
+        let mesh;
+        if (type === 'bad') {
+            // マイナスアイテムは赤い球
+            const geo = new THREE.SphereGeometry(0.25, 12, 8);
+            const mat = new THREE.MeshLambertMaterial({ color });
+            mesh = new THREE.Mesh(geo, mat);
+        } else if (satsumaimoModel) {
+            // サツマイモモデルを使用
+            mesh = satsumaimoModel.clone();
+            const scale = type === 'satsumaimo_big' ? 0.7 : 0.5;
+            mesh.scale.set(scale, scale, scale);
+        } else {
+            // フォールバック：楕円形（サツマイモ風）
+            const geo = new THREE.SphereGeometry(0.3, 12, 8);
+            geo.scale(1.5, 0.7, 0.7);
+            const mat = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
+            mesh = new THREE.Mesh(geo, mat);
+        }
+        
+        mesh.position.set(lanes[Math.floor(Math.random() * 3)], 0.5, z);
+        itemGroup.add(mesh);
+        
+        const canvas2d = document.createElement('canvas');
+        canvas2d.width = 128;
+        canvas2d.height = 64;
+        const ctx = canvas2d.getContext('2d');
+        ctx.fillStyle = type === 'bad' ? '#ff4444' : '#44ff44';
+        ctx.font = 'bold 40px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText((type === 'bad' ? '-' : '+') + value, 64, 45);
+        
+        const texture = new THREE.CanvasTexture(canvas2d);
+        const spriteMat = new THREE.SpriteMaterial({ map: texture });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.scale.set(1.2, 0.6, 1);
+        sprite.position.set(0, 0.8, 0);
+        mesh.add(sprite);
+        
+        items.push({ mesh, type, value, got: false, z });
+    }
+    
+    for (let i = 0; i < blockCount; i++) {
+        const z = -20 - (i / blockCount) * STAGE_LENGTH * 0.9;
+        
+        const blockGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+        const blockMat = new THREE.MeshLambertMaterial({ color: 0x444455 });
+        const block = new THREE.Mesh(blockGeo, blockMat);
+        block.position.set(lanes[Math.floor(Math.random() * 3)], 0.4, z);
+        itemGroup.add(block);
+        
+        for (let j = 0; j < 6; j++) {
+            const fireGeo = new THREE.SphereGeometry(0.12, 6, 4);
+            const fireMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+            const fire = new THREE.Mesh(fireGeo, fireMat);
+            fire.position.set((Math.random() - 0.5) * 0.5, 0.5 + Math.random() * 0.3, (Math.random() - 0.5) * 0.5);
+            fire.userData.phase = Math.random() * Math.PI * 2;
+            fire.userData.speed = 0.5 + Math.random() * 0.5;
+            block.add(fire);
+        }
+        
+        const canvas2d = document.createElement('canvas');
+        canvas2d.width = 128;
+        canvas2d.height = 64;
+        const ctx = canvas2d.getContext('2d');
+        ctx.fillStyle = '#ff6600';
+        ctx.font = 'bold 40px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('-300', 64, 45);
+        
+        const texture = new THREE.CanvasTexture(canvas2d);
+        const spriteMat = new THREE.SpriteMaterial({ map: texture });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.scale.set(1.2, 0.6, 1);
+        sprite.position.set(0, 1.2, 0);
+        block.add(sprite);
+        
+        blocks.push({ mesh: block, hit: false, z });
+    }
+}
+
+const loader = new GLTFLoader();
+loader.register((parser) => new VRMLoaderPlugin(parser));
+loader.register((parser) => new VRMAnimationLoaderPlugin(parser));
+
+// サツマイモモデルを読み込み
+const itemLoader = new GLTFLoader();
+itemLoader.load('satsumaimo.glb', (gltf) => {
+    satsumaimoModel = gltf.scene;
+    satsumaimoModel.scale.set(0.5, 0.5, 0.5);
+    console.log('サツマイモモデル読み込み完了');
+}, undefined, (error) => {
+    console.log('サツマイモモデル読み込みエラー（フォールバック使用）:', error);
+});
+
+function loadVRM(url) {
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('loading').textContent = 'VRM読み込み中...';
+    
+    loader.load(url, (gltf) => {
+        if (vrm) scene.remove(vrm.scene);
+        
+        vrm = gltf.userData.vrm;
+        console.log('VRM loaded:', vrm);
+        VRMUtils.removeUnnecessaryVertices(vrm.scene);
+        VRMUtils.removeUnnecessaryJoints(vrm.scene);
+        
+        vrm.scene.position.set(0, 0, 0);
+        vrm.scene.rotation.y = Math.PI;
+        scene.add(vrm.scene);
+        
+        if (defaultChar) defaultChar.visible = false;
+        
+        mixer = new THREE.AnimationMixer(vrm.scene);
+        console.log('Mixer created');
+        
+        if (runAnimation) {
+            console.log('Applying animation after VRM load');
+            if (runAnimation.humanoidTracks || runAnimation.expressionTracks) {
+                applyAnimation();
+            } else {
+                applyAnimationGLTF();
+            }
+        }
+        
+        document.getElementById('modelStatus').textContent = '✓ VRMモデル読み込み完了！';
+        document.getElementById('loading').style.display = 'none';
+    }, (progress) => {
+        if (progress.total) {
+            const percent = Math.round((progress.loaded / progress.total) * 100);
+            document.getElementById('loading').textContent = `VRM読み込み中... ${percent}%`;
+        }
+    }, (error) => {
+        console.error('VRM読み込みエラー:', error);
+        document.getElementById('modelStatus').textContent = '❌ VRM読み込みエラー';
+        document.getElementById('loading').style.display = 'none';
+    });
+}
+
+function loadVRMA(url) {
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('loading').textContent = 'モーション読み込み中...';
+    
+    loader.load(url, (gltf) => {
+        console.log('VRMA loaded:', gltf);
+        console.log('userData:', gltf.userData);
+        console.log('vrmAnimations:', gltf.userData.vrmAnimations);
+        
+        if (gltf.userData.vrmAnimations && gltf.userData.vrmAnimations.length > 0) {
+            runAnimation = gltf.userData.vrmAnimations[0];
+            console.log('Animation found:', runAnimation);
+            
+            document.getElementById('motionStatus').textContent = '✓ 走りモーション読み込み完了！';
+            
+            if (vrm && mixer) {
+                applyAnimation();
+            }
+        } else {
+            // フォールバック: 通常のglTFアニメーションとして読み込み
+            console.log('No VRM animations, checking gltf.animations:', gltf.animations);
+            if (gltf.animations && gltf.animations.length > 0) {
+                runAnimation = gltf.animations[0];
+                document.getElementById('motionStatus').textContent = '✓ モーション読み込み完了（glTF）';
+                if (vrm && mixer) {
+                    applyAnimationGLTF();
+                }
+            } else {
+                document.getElementById('motionStatus').textContent = '⚠ アニメーションが見つかりません';
+            }
+        }
+        document.getElementById('loading').style.display = 'none';
+    }, (progress) => {
+        if (progress.total) {
+            const percent = Math.round((progress.loaded / progress.total) * 100);
+            document.getElementById('loading').textContent = `モーション読み込み中... ${percent}%`;
+        }
+    }, (error) => {
+        console.error('VRMA読み込みエラー:', error);
+        document.getElementById('motionStatus').textContent = '❌ モーション読み込みエラー';
+        document.getElementById('loading').style.display = 'none';
+    });
+}
+
+function applyAnimationGLTF() {
+    if (!vrm || !mixer || !runAnimation) return;
+    console.log('Applying GLTF animation');
+    if (runAction) runAction.stop();
+    runAction = mixer.clipAction(runAnimation);
+    runAction.setLoop(THREE.LoopRepeat);
+    runAction.play();
+}
+
+function applyAnimation() {
+    if (!vrm || !mixer || !runAnimation) {
+        console.log('Cannot apply - missing:', {vrm:!!vrm, mixer:!!mixer, anim:!!runAnimation});
+        return;
+    }
+    console.log('Applying VRM animation:', runAnimation);
+    
+    try {
+        const clip = createVRMAnimationClip(runAnimation, vrm);
+        console.log('Created clip:', clip);
+        console.log('Clip duration:', clip.duration);
+        console.log('Clip tracks:', clip.tracks.length);
+        clip.tracks.forEach((t,i) => console.log(`Track ${i}:`, t.name));
+        
+        if (runAction) runAction.stop();
+        
+        runAction = mixer.clipAction(clip);
+        runAction.setLoop(THREE.LoopRepeat);
+        runAction.clampWhenFinished = false;
+        runAction.timeScale = 1;
+        runAction.weight = 1;
+        runAction.play();
+        
+        console.log('Animation started:', runAction.isRunning());
+    } catch(e) {
+        console.error('Animation apply error:', e);
+    }
+}
+
+// 飛行モーション読み込み
+function loadFartVRMA(url) {
+    console.log('=== Loading Fart VRMA ===');
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('loading').textContent = '飛行モーション読み込み中...';
+    
+    loader.load(url, (gltf) => {
+        console.log('Fart VRMA loaded successfully:', gltf);
+        console.log('Fart VRMA userData:', gltf.userData);
+        console.log('Fart VRMA vrmAnimations:', gltf.userData.vrmAnimations);
+        
+        if (gltf.userData.vrmAnimations && gltf.userData.vrmAnimations.length > 0) {
+            fartAnimation = gltf.userData.vrmAnimations[0];
+            console.log('=== Fart Animation SET ===', fartAnimation);
+            
+            document.getElementById('fartMotionStatus').textContent = '✓ 飛行モーション読み込み完了！';
+        } else {
+            console.log('No vrmAnimations found in fart VRMA');
+            document.getElementById('fartMotionStatus').textContent = '⚠ 飛行アニメーションが見つかりません';
+        }
+        document.getElementById('loading').style.display = 'none';
+    }, (progress) => {
+        if (progress.total) {
+            const percent = Math.round((progress.loaded / progress.total) * 100);
+            document.getElementById('loading').textContent = `飛行モーション読み込み中... ${percent}%`;
+        }
+    }, (error) => {
+        console.error('飛行VRMA読み込みエラー:', error);
+        document.getElementById('fartMotionStatus').textContent = '❌ 飛行モーション読み込みエラー';
+        document.getElementById('loading').style.display = 'none';
+    });
+}
+
+// 飛行モーション適用
+function applyFartAnimation() {
+    if (!vrm || !mixer || !fartAnimation) {
+        console.log('Cannot apply fart animation - missing:', {vrm:!!vrm, mixer:!!mixer, fartAnim:!!fartAnimation});
+        return;
+    }
+    console.log('Applying fart animation...');
+    
+    try {
+        // 走りモーションを完全停止
+        if (runAction) {
+            runAction.stop();
+            runAction.reset();
+            runAction.setEffectiveWeight(0);
+        }
+        
+        // 全アクション停止
+        mixer.stopAllAction();
+        
+        const clip = createVRMAnimationClip(fartAnimation, vrm);
+        clip.name = 'fartAnimation_' + Date.now();
+        
+        console.log('Fart clip created:', clip);
+        
+        // 新しいアクションを作成
+        fartAction = mixer.clipAction(clip);
+        fartAction.reset();
+        fartAction.setLoop(THREE.LoopRepeat);
+        fartAction.clampWhenFinished = false;
+        fartAction.timeScale = 1;
+        fartAction.setEffectiveWeight(1);
+        fartAction.play();
+        
+        console.log('Fart animation started:', fartAction.isRunning());
+    } catch(e) {
+        console.error('Fart animation apply error:', e);
+    }
+}
+
+// 走りモーションに戻す
+function applyRunAnimation() {
+    if (!vrm || !mixer || !runAnimation) {
+        console.log('Cannot apply run animation');
+        return;
+    }
+    console.log('Applying run animation...');
+    
+    try {
+        // オナラモーションを完全停止
+        if (fartAction) {
+            fartAction.stop();
+            fartAction.reset();
+            fartAction.setEffectiveWeight(0);
+        }
+        
+        // 全アクション停止
+        mixer.stopAllAction();
+        
+        const clip = createVRMAnimationClip(runAnimation, vrm);
+        clip.name = 'runAnimation_' + Date.now();
+        
+        runAction = mixer.clipAction(clip);
+        runAction.reset();
+        runAction.setLoop(THREE.LoopRepeat);
+        runAction.setEffectiveWeight(1);
+        runAction.play();
+        
+        console.log('Run animation started:', runAction.isRunning());
+    } catch(e) {
+        console.error('Run animation apply error:', e);
+    }
+}
+
+function createDefaultCharacter() {
+    const group = new THREE.Group();
+    
+    const bodyMat = new THREE.MeshLambertMaterial({ color: 0xf06080 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.25), bodyMat);
+    body.position.y = 1.0;
+    group.add(body);
+    
+    const headMat = new THREE.MeshLambertMaterial({ color: 0xffddcc });
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 8), headMat);
+    head.position.y = 1.5;
+    group.add(head);
+    
+    const hairMat = new THREE.MeshLambertMaterial({ color: 0x332211 });
+    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 8), hairMat);
+    hair.position.set(0, 1.58, -0.05);
+    group.add(hair);
+    
+    const buttMat = new THREE.MeshLambertMaterial({ color: 0xffccbb });
+    const butt = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 8), buttMat);
+    butt.position.set(0, 0.8, -0.15);
+    butt.name = 'butt';
+    group.add(butt);
+    
+    const legMat = new THREE.MeshLambertMaterial({ color: 0xffccbb });
+    const legL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.4, 0.12), legMat);
+    legL.position.set(-0.12, 0.4, 0);
+    legL.name = 'legL';
+    group.add(legL);
+    
+    const legR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.4, 0.12), legMat);
+    legR.position.set(0.12, 0.4, 0);
+    legR.name = 'legR';
+    group.add(legR);
+    
+    const shoeMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+    const shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.1, 0.18), shoeMat);
+    shoeL.position.set(-0.12, 0.05, 0.02);
+    group.add(shoeL);
+    
+    const shoeR = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.1, 0.18), shoeMat);
+    shoeR.position.set(0.12, 0.05, 0.02);
+    group.add(shoeR);
+    
+    group.name = 'defaultCharacter';
+    return group;
+}
+
+let defaultChar = createDefaultCharacter();
+scene.add(defaultChar);
+
+const fartParticles = [];
+function spawnFartParticle() {
+    const geo = new THREE.SphereGeometry(0.15, 6, 4);
+    const mat = new THREE.MeshBasicMaterial({ 
+        color: new THREE.Color(0.6 + Math.random() * 0.2, 0.9, 0.3),
+        transparent: true, opacity: 0.8
+    });
+    const p = new THREE.Mesh(geo, mat);
+    p.position.set(st.lx + (Math.random() - 0.5) * 0.4, st.flyY + 0.5, -0.3 + (Math.random() - 0.5) * 0.3);
+    p.userData = { vx: (Math.random() - 0.5) * 0.03, vy: -0.03 - Math.random() * 0.05, vz: -0.02 - Math.random() * 0.03, life: 1.0 };
+    fartGroup.add(p);
+    fartParticles.push(p);
+}
+
+createGround();
+
+function update() {
+    const delta = clock.getDelta();
+    const time = clock.getElapsedTime();
+    
+    // VRMアニメーション更新（常に更新）
+    if (mixer) {
+        mixer.update(delta);
+    }
+    
+    // VRM更新
+    if (vrm) {
+        vrm.update(delta);
+    }
+    
+    if (st.flying) {
+        st.flyTime += delta;
+        const fartPower = (st.bs - 0.5) * 1.5;
+        
+        if (st.flyTime < 4) {
+            st.flyVel = fartPower * (1 - st.flyTime / 4);
+            st.flyY += st.flyVel * 0.02;
+            st.maxFlyHeight = Math.max(st.maxFlyHeight, st.flyY);
+            for (let i = 0; i < 3; i++) if (Math.random() < 0.7) spawnFartParticle();
+        } else {
+            st.flying = false;
+            document.getElementById('flyHeight').style.display = 'none';
+            document.getElementById('clearLevel').textContent = 'Level ' + st.lv + ' Complete!';
+            document.getElementById('clearScore').textContent = 'Score: ' + st.sc + ' | 飛行距離: ' + Math.floor(st.maxFlyHeight * 10) + 'm';
+            document.getElementById('clear').style.display = 'flex';
+        }
+        
+        for (let i = fartParticles.length - 1; i >= 0; i--) {
+            const p = fartParticles[i];
+            p.position.x += p.userData.vx;
+            p.position.y += p.userData.vy;
+            p.position.z += p.userData.vz;
+            p.userData.life -= 0.02;
+            p.material.opacity = p.userData.life * 0.8;
+            p.scale.setScalar(1 + (1 - p.userData.life) * 0.5);
+            if (p.userData.life <= 0) { fartGroup.remove(p); fartParticles.splice(i, 1); }
+        }
+        document.getElementById('flyHeight').textContent = '💨 飛行中... ' + Math.floor(st.flyY * 10) + 'm';
+    }
+    
+    if (!st.run && !st.flying) return;
+    if (st.tw && Date.now() > st.twE) st.tw = false;
+    
+    const baseSpeed = 0.1 + st.lv * 0.01;
+    const spd = baseSpeed * (st.tw ? 1.3 : 1);
+    
+    if (st.run) {
+        st.stageDist += spd;
+        st.gOff += spd;
+        st.lx += (st.tx - st.lx) * 0.12;
+        
+        if (st.stageDist >= STAGE_LENGTH) {
+            st.run = false;
+            st.flying = true;
+            st.flyY = 0;
+            st.flyVel = 0;
+            st.flyTime = 0;
+            st.maxFlyHeight = 0;
+            document.getElementById('flyHeight').style.display = 'block';
+            
+            // BGM停止、クリア音とおなら音を再生
+            bgm.pause();
+            poronSound.currentTime = 0;
+            poronSound.play().catch(e => {});
+            onaraSound.currentTime = 0;
+            onaraSound.play().catch(e => {});
+            
+            // 飛行モーションに切り替え
+            console.log('Switching to fart animation, fartAnimation:', !!fartAnimation);
+            if (fartAnimation && vrm && mixer) {
+                applyFartAnimation();
+            }
+            return;
+        }
+    }
+    
+    const character = vrm ? vrm.scene : defaultChar;
+    if (character) {
+        character.position.x = st.lx;
+        character.position.y = st.flyY;
+        
+        if (vrm) {
+            const hips = vrm.humanoid?.getNormalizedBoneNode('hips');
+            if (hips && (st.tw || st.flying)) hips.rotation.y = Math.sin(time * 25) * 0.2;
+            character.rotation.x = st.flying ? -0.3 : 0;
+            
+            // お尻のサイズ変更（Hips周りのボーンをスケール）
+            if (hips) {
+                // 横方向（X）を大きく、前後（Z）も少し大きく
+                const buttScale = 1 + (st.bs - 1) * 0.5; // st.bsが1〜2.5なので、1〜1.75になる
+                hips.scale.set(buttScale, 1, 1 + (st.bs - 1) * 0.3);
+            }
+            
+            // 太ももも少しスケール（よりお尻が大きく見える効果）
+            const leftUpperLeg = vrm.humanoid?.getNormalizedBoneNode('leftUpperLeg');
+            const rightUpperLeg = vrm.humanoid?.getNormalizedBoneNode('rightUpperLeg');
+            if (leftUpperLeg && rightUpperLeg) {
+                const legScale = 1 + (st.bs - 1) * 0.25;
+                leftUpperLeg.scale.set(legScale, 1, legScale);
+                rightUpperLeg.scale.set(legScale, 1, legScale);
+            }
+        } else {
+            const butt = defaultChar.getObjectByName('butt');
+            if (butt) {
+                butt.scale.setScalar(st.bs);
+                if (st.tw || st.flying) butt.position.x = Math.sin(time * 25) * 0.1;
+            }
+            const legL = defaultChar.getObjectByName('legL');
+            const legR = defaultChar.getObjectByName('legR');
+            if (legL && legR && st.run) {
+                legL.position.z = Math.sin(time * 10) * 0.1;
+                legR.position.z = -Math.sin(time * 10) * 0.1;
+            }
+            defaultChar.rotation.x = st.flying ? -0.3 : 0;
+        }
+        
+        // カメラをキャラクター中心に回転
+        updateCamera(character);
+    }
+    
+    envGroup.position.z = st.gOff % 12;
+    itemGroup.position.z = st.gOff;
+    
+    for (const it of items) {
+        if (it.got) continue;
+        it.mesh.rotation.y += 0.03;
+        it.mesh.position.y = 0.5 + Math.sin(time * 3 + it.z) * 0.1;
+        
+        const iz = it.z + st.gOff;
+        if (Math.abs(it.mesh.position.x - st.lx) < 0.9 && Math.abs(iz) < 1.3) {
+            it.got = true;
+            it.mesh.visible = false;
+            if (it.type === 'satsumaimo' || it.type === 'satsumaimo_big') {
+                // サツマイモ取得！効果音再生
+                puinSound.currentTime = 0;
+                puinSound.play().catch(e => {});
+                
+                st.cmb++;
+                const m = Math.min(st.cmb, 10);
+                st.sc += it.value * m;
+                st.bs = Math.min(st.bs + (it.type === 'satsumaimo_big' ? 0.15 : 0.08), 2.5);
+                st.pwr = Math.min(st.pwr + (it.type === 'satsumaimo_big' ? 10 : 5), 100);
+                if (st.cmb > 1) showCmb();
+            } else {
+                // ネガティブアイテム！もぎゅう音再生
+                mogyuSound.currentTime = 0;
+                mogyuSound.play().catch(e => {});
+                
+                st.cmb = 0;
+                st.sc = Math.max(st.sc - it.value, 0);
+                st.bs = Math.max(st.bs - 0.1, 0.5);
+                st.pwr = Math.max(st.pwr - 10, 0);
+            }
+        }
+    }
+    
+    for (const blk of blocks) {
+        if (blk.hit) continue;
+        blk.mesh.children.forEach(child => {
+            if (child.userData.phase !== undefined)
+                child.position.y = 0.5 + Math.sin(time * child.userData.speed * 5 + child.userData.phase) * 0.2;
+        });
+        const bz = blk.z + st.gOff;
+        if (Math.abs(blk.mesh.position.x - st.lx) < 0.9 && Math.abs(bz) < 1.2) {
+            blk.hit = true;
+            blk.mesh.visible = false;
+            
+            // 炎ブロックにもぎゅう音
+            mogyuSound.currentTime = 0;
+            mogyuSound.play().catch(e => {});
+            
+            st.cmb = 0;
+            st.sc = Math.max(st.sc - 300, 0);
+            st.bs = Math.max(st.bs - 0.15, 0.5);
+            st.pwr = Math.max(st.pwr - 15, 0);
+            if (st.bs <= 0.5 && st.pwr <= 0) endGame();
+        }
+    }
+    
+    document.getElementById('score').textContent = st.sc;
+    document.getElementById('level').textContent = 'Level ' + st.lv;
+    document.getElementById('pfill').style.height = st.pwr + '%';
+    document.getElementById('stageBar').style.width = (st.stageDist / STAGE_LENGTH * 100) + '%';
+}
+
+// カメラ更新関数
+function updateCamera(character) {
+    const targetX = character.position.x;
+    const targetY = character.position.y + 1.0; // キャラの少し上を見る
+    const targetZ = 0; // キャラのZ位置は固定
+    
+    // 球座標からカメラ位置を計算
+    const x = targetX + camState.distance * Math.sin(camState.angleH) * Math.cos(camState.angleV);
+    const y = targetY + camState.distance * Math.sin(camState.angleV);
+    const z = targetZ + camState.distance * Math.cos(camState.angleH) * Math.cos(camState.angleV);
+    
+    camera.position.set(x, y, z);
+    camera.lookAt(targetX, targetY, targetZ - 5); // 少し前方を見る
+}
+
+function showCmb() {
+    const e = document.getElementById('combo');
+    e.textContent = 'COMBO x' + st.cmb;
+    e.classList.add('show');
+    setTimeout(() => e.classList.remove('show'), 500);
+}
+
+function startGame() {
+    st.run = true; st.sc = 0; st.lv = 1; st.stageDist = 0; st.pwr = 30; st.cmb = 0;
+    st.lane = 1; st.lx = 0; st.tx = 0; st.bs = 1; st.tw = false; st.gOff = 0;
+    st.flying = false; st.flyY = 0;
+    
+    while (fartParticles.length > 0) fartGroup.remove(fartParticles.pop());
+    
+    // BGM開始
+    bgm.currentTime = 0;
+    bgm.play().catch(e => {});
+    
+    // 走りモーションを適用
+    if (runAnimation) {
+        applyRunAnimation();
+    } else if (runAction) {
+        runAction.reset();
+        runAction.play();
+    }
+    
+    placeItems();
+    
+    document.getElementById('start').style.display = 'none';
+    document.getElementById('over').style.display = 'none';
+    document.getElementById('clear').style.display = 'none';
+    document.getElementById('flyHeight').style.display = 'none';
+}
+
+function nextStage() {
+    st.lv++; st.stageDist = 0; st.gOff = 0; st.lane = 1; st.lx = 0; st.tx = 0;
+    st.flyY = 0; st.flying = false;
+    
+    while (fartParticles.length > 0) fartGroup.remove(fartParticles.pop());
+    
+    // 環境を再生成（ステージカラー変更）
+    while (envGroup.children.length > 0) {
+        envGroup.remove(envGroup.children[0]);
+    }
+    createGround();
+    
+    // BGMを再開
+    bgm.currentTime = 0;
+    bgm.play().catch(e => {});
+    
+    // 走りモーションに戻す
+    if (runAnimation) {
+        applyRunAnimation();
+    } else if (runAction) {
+        runAction.reset();
+        runAction.play();
+    }
+    
+    placeItems();
+    st.run = true;
+    
+    document.getElementById('clear').style.display = 'none';
+    document.getElementById('flyHeight').style.display = 'none';
+}
+
+function endGame() {
+    st.run = false;
+    bgm.pause();
+    document.getElementById('fscore').textContent = st.sc;
+    document.getElementById('over').style.display = 'flex';
+}
+
+let touchX = 0;
+canvas.addEventListener('touchstart', e => { e.preventDefault(); touchX = e.touches[0].clientX; }, { passive: false });
+canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (!st.run) return;
+    const x = e.touches[0].clientX, d = x - touchX;
+    if (Math.abs(d) > 30) {
+        if (d > 0 && st.lane < 2) { st.lane++; st.tx = lanes[st.lane]; }
+        else if (d < 0 && st.lane > 0) { st.lane--; st.tx = lanes[st.lane]; }
+        touchX = x;
+    }
+}, { passive: false });
+canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    if (!st.run) return;
+    if (st.pwr >= 20 && !st.tw) { st.tw = true; st.twE = Date.now() + 1500; st.pwr -= 20; }
+}, { passive: false });
+
+document.addEventListener('keydown', e => {
+    if (!st.run) return;
+    if ((e.key === 'ArrowLeft' || e.key === 'a') && st.lane > 0) { st.lane--; st.tx = lanes[st.lane]; }
+    if ((e.key === 'ArrowRight' || e.key === 'd') && st.lane < 2) { st.lane++; st.tx = lanes[st.lane]; }
+    if (e.key === ' ' && st.pwr >= 20 && !st.tw) { st.tw = true; st.twE = Date.now() + 1500; st.pwr -= 20; }
+});
+
+document.getElementById('selectVrmBtn').addEventListener('click', () => document.getElementById('vrmInput').click());
+document.getElementById('vrmInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) loadVRM(URL.createObjectURL(file));
+});
+
+document.getElementById('selectVrmaBtn').addEventListener('click', () => document.getElementById('vrmaInput').click());
+document.getElementById('vrmaInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) loadVRMA(URL.createObjectURL(file));
+});
+
+document.getElementById('selectFartBtn').addEventListener('click', () => document.getElementById('fartInput').click());
+document.getElementById('fartInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) loadFartVRMA(URL.createObjectURL(file));
+});
+
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag');
+    for (const file of e.dataTransfer.files) {
+        console.log('Dropped file:', file.name);
+        if (file.name.endsWith('.vrm')) {
+            loadVRM(URL.createObjectURL(file));
+        } else if (file.name.endsWith('.vrma')) {
+            // ファイル名に「おなら」「fart」「fly」「飛」「onara」が含まれていたら飛行モーション
+            const lowerName = file.name.toLowerCase();
+            const isFartMotion = lowerName.includes('おなら') || lowerName.includes('fart') || lowerName.includes('fly') || lowerName.includes('飛') || lowerName.includes('onara');
+            console.log('Is fart motion:', isFartMotion, 'filename:', lowerName);
+            
+            if (isFartMotion) {
+                loadFartVRMA(URL.createObjectURL(file));
+            } else {
+                loadVRMA(URL.createObjectURL(file));
+            }
+        }
+    }
+});
+
+document.getElementById('sbtn').addEventListener('click', startGame);
+document.getElementById('rbtn').addEventListener('click', startGame);
+document.getElementById('nextbtn').addEventListener('click', nextStage);
+
+// カメラコントロール
+const CAM_ROTATE_SPEED = 0.15;
+const CAM_V_LIMIT = 1.2; // 垂直角度の上限
+const CAM_ZOOM_SPEED = 1;
+const CAM_MIN_DIST = 3;
+const CAM_MAX_DIST = 15;
+
+document.getElementById('camLeft').addEventListener('click', () => {
+    camState.angleH -= CAM_ROTATE_SPEED;
+});
+document.getElementById('camRight').addEventListener('click', () => {
+    camState.angleH += CAM_ROTATE_SPEED;
+});
+document.getElementById('camUp').addEventListener('click', () => {
+    camState.angleV = Math.min(camState.angleV + CAM_ROTATE_SPEED, CAM_V_LIMIT);
+});
+document.getElementById('camDown').addEventListener('click', () => {
+    camState.angleV = Math.max(camState.angleV - CAM_ROTATE_SPEED, -0.3);
+});
+document.getElementById('camZoomIn').addEventListener('click', () => {
+    camState.distance = Math.max(camState.distance - CAM_ZOOM_SPEED, CAM_MIN_DIST);
+});
+document.getElementById('camZoomOut').addEventListener('click', () => {
+    camState.distance = Math.min(camState.distance + CAM_ZOOM_SPEED, CAM_MAX_DIST);
+});
+document.getElementById('camReset').addEventListener('click', () => {
+    camState.angleH = camState.defaultAngleH;
+    camState.angleV = camState.defaultAngleV;
+    camState.distance = 6;
+});
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+function animate() {
+    requestAnimationFrame(animate);
+    update();
+    renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
