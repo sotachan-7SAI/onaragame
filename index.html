@@ -114,14 +114,13 @@
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { Reflector } from 'three/addons/objects/Reflector.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { VRMAnimationLoaderPlugin, createVRMAnimationClip } from '@pixiv/three-vrm-animation';
 
 const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(1); // 軽量化のため1に固定
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
@@ -195,34 +194,27 @@ scene.add(itemGroup);
 scene.add(fartGroup);
 
 function createGround() {
-    // 反射する地面（Reflector使用）
+    // 軽量な地面（反射なし）
     const roadGeo = new THREE.PlaneGeometry(ROAD_WIDTH * 2, 300);
-    const reflector = new Reflector(roadGeo, {
-        color: 0x889999,
-        textureWidth: window.innerWidth * window.devicePixelRatio,
-        textureHeight: window.innerHeight * window.devicePixelRatio
-    });
-    reflector.rotation.x = -Math.PI / 2;
-    reflector.position.set(0, -0.01, -145);
-    envGroup.add(reflector);
+    const roadMat = new THREE.MeshLambertMaterial({ color: 0xeeeeee });
+    const road = new THREE.Mesh(roadGeo, roadMat);
+    road.rotation.x = -Math.PI / 2;
+    road.position.set(0, -0.01, -145);
+    envGroup.add(road);
     
-    // 半透明のチェッカーパターン（反射が見えるように）
+    // チェッカーパターン（軽量版）
     for (let z = 0; z > -300; z -= 3) {
         for (let x = -ROAD_WIDTH; x < ROAD_WIDTH; x += 1.5) {
             const isWhite = (Math.floor(x / 1.5) + Math.floor(-z / 3)) % 2 === 0;
-            const tile = new THREE.Mesh(
-                new THREE.PlaneGeometry(1.5, 3),
-                new THREE.MeshStandardMaterial({ 
-                    color: isWhite ? 0xffffff : 0xccccdd,
-                    roughness: 0.3,
-                    metalness: 0.1,
-                    transparent: true,
-                    opacity: 0.5
-                })
-            );
-            tile.rotation.x = -Math.PI / 2;
-            tile.position.set(x + 0.75, 0.01, z - 1.5);
-            envGroup.add(tile);
+            if (!isWhite) {
+                const tile = new THREE.Mesh(
+                    new THREE.PlaneGeometry(1.5, 3),
+                    new THREE.MeshLambertMaterial({ color: 0xccccdd })
+                );
+                tile.rotation.x = -Math.PI / 2;
+                tile.position.set(x + 0.75, 0.01, z - 1.5);
+                envGroup.add(tile);
+            }
         }
     }
     
