@@ -446,8 +446,10 @@ function loadVRM(url) {
         }
     }, (error) => {
         console.error('VRM読み込みエラー:', error);
-        document.getElementById('modelStatus').textContent = '❌ VRM読み込みエラー';
+        document.getElementById('modelStatus').textContent = '❌ VRM読み込みエラー（デフォルトキャラ使用）';
         document.getElementById('loading').style.display = 'none';
+        // VRM読み込み失敗時はデフォルトキャラを表示
+        if (defaultChar) defaultChar.visible = true;
     });
 }
 
@@ -688,6 +690,7 @@ function createDefaultCharacter() {
 }
 
 let defaultChar = createDefaultCharacter();
+defaultChar.visible = false;  // 最初は非表示（VRMが読み込まれなかった場合のフォールバック）
 scene.add(defaultChar);
 
 const fartParticles = [];
