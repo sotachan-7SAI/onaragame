@@ -73,7 +73,7 @@
         <div class="title">🍑 TWERK RACE</div>
         <div class="sub">VRM Edition<br>スワイプで移動・タップでブースト!</div>
         <div id="dropZone">
-            <p>📁 VRM/VRMAファイルをドロップ</p>
+            <p>📁 デフォルトモデル使用中（差し替え可能）</p>
             <div class="fileRow">
                 <button class="btn btnBlue" id="selectVrmBtn">VRMモデル</button>
                 <button class="btn btnPurple" id="selectVrmaBtn">走りモーション</button>
@@ -82,9 +82,9 @@
             <input type="file" id="vrmInput" accept=".vrm">
             <input type="file" id="vrmaInput" accept=".vrma">
             <input type="file" id="fartInput" accept=".vrma">
-            <div id="modelStatus"></div>
-            <div id="motionStatus"></div>
-            <div id="fartMotionStatus"></div>
+            <div id="modelStatus">✓ デフォルトVRM読み込み中...</div>
+            <div id="motionStatus">✓ 走りモーション読み込み中...</div>
+            <div id="fartMotionStatus">✓ 飛行モーション読み込み中...</div>
         </div>
         <button class="btn" id="sbtn">START</button>
     </div>
@@ -381,6 +381,30 @@ itemLoader.load('satsumaimo.glb', (gltf) => {
     console.log('サツマイモモデル読み込み完了');
 }, undefined, (error) => {
     console.log('サツマイモモデル読み込みエラー（フォールバック使用）:', error);
+});
+
+// デフォルトのVRM・VRMAを自動読み込み
+let defaultsLoaded = false;
+function loadDefaults() {
+    if (defaultsLoaded) return;
+    defaultsLoaded = true;
+    
+    // デフォルトVRMモデル
+    loadVRM('AvatarSample_A.vrm');
+    
+    // 少し遅延させてモーションを読み込む
+    setTimeout(() => {
+        loadVRMA('run.vrma');
+    }, 500);
+    
+    setTimeout(() => {
+        loadFartVRMA('onara-tobu.vrma');
+    }, 1000);
+}
+
+// ページ読み込み完了後にデフォルトを読み込む
+window.addEventListener('load', () => {
+    setTimeout(loadDefaults, 100);
 });
 
 function loadVRM(url) {
